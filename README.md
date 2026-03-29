@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MemoryLane
+
+> **Capture Your Journey, Create Your Story**
+
+MemoryLane is a drag-and-drop travel journal editor that lets you arrange photos, maps, text, and stickers on a freeform canvas — then export the result as a PNG, PDF, or shareable HTML page.
+
+## Features
+
+- **Dual canvas engines** — switch between Fabric.js and Konva.js renderers
+- **Photo support** — add images by URL, drag to reposition, resize from corners
+- **Text elements** — rich text with font family, size, color, bold/italic, and alignment controls
+- **Map tiles** — embed location snapshots (rectangle, circle, or postcard clip shape)
+- **Stickers** — SVG stickers with hue-tint adjustment
+- **Properties panel** — live editing of position, size, rotation, and opacity for selected objects
+- **Undo / Redo** — full 50-step history via `Ctrl+Z` / `Ctrl+Shift+Z`
+- **Grid overlay** — 16 px snap grid, toggleable
+- **Export** — PNG, PDF, and share-as-HTML
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js (App Router, TypeScript) |
+| Canvas (primary) | Fabric.js |
+| Canvas (secondary) | Konva.js + react-konva |
+| Styling | Tailwind CSS + custom CSS variables |
+| UI Components | Headless shadcn-style components |
+| Backend | Express 5 + Mongoose (MongoDB) |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+
+### Frontend
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Backend
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd backend
+npm install
+npm run dev   # starts nodemon on server.js
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+memorylane/
+├── src/
+│   ├── app/               # Next.js App Router pages and layout
+│   ├── components/
+│   │   ├── canvas/        # JournalCanvas (Fabric), KonvaJournalCanvas, PropertiesPanel
+│   │   └── ui/            # Button, Card, Badge, Input, Slider, Tabs
+│   ├── hooks/
+│   │   └── useCanvasHistory.ts   # Undo/redo state machine
+│   ├── lib/
+│   │   ├── canvas/types.ts       # Shared canvas data model
+│   │   ├── export/               # PNG / PDF / HTML export helpers
+│   │   ├── maps/                 # Map tile utilities
+│   │   └── stickers/             # Sticker catalogue
+│   └── styles/
+│       └── globals.css           # Brand design tokens
+└── backend/               # Express + MongoDB API
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Canvas Data Model
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+All canvas state is serialised as `CanvasData`:
 
-## Deploy on Vercel
+```ts
+interface CanvasData {
+  version: string;
+  size: { width: number; height: number };
+  objects: (ImageObject | TextObject | MapObject | StickerObject)[];
+  background?: string;
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Each object carries common transform fields (`x`, `y`, `width`, `height`, `rotation`, `scaleX`, `scaleY`, `opacity`) plus type-specific properties.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT
