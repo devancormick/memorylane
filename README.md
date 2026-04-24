@@ -2,79 +2,96 @@
 
 > **Capture Your Journey, Create Your Story**
 
-MemoryLane is a drag-and-drop travel journal editor that lets you arrange photos, maps, text, and stickers on a freeform canvas — then export the result as a PNG, PDF, or shareable HTML page.
+MemoryLane is a browser-based drag-and-drop travel journal editor. Arrange photos, map tiles, text, and stickers on a freeform canvas, then export the finished page as a high-resolution PNG or print-ready PDF.
+
+---
 
 ## Features
 
-- **Dual canvas engines** — switch between Fabric.js and Konva.js renderers
-- **Photo support** — add images by URL, drag to reposition, resize from corners
-- **Text elements** — rich text with font family, size, color, bold/italic, and alignment controls
-- **Map tiles** — embed location snapshots (rectangle, circle, or postcard clip shape)
-- **Stickers** — SVG stickers with hue-tint adjustment
-- **Properties panel** — live editing of position, size, rotation, and opacity for selected objects
-- **Undo / Redo** — full 50-step history via `Ctrl+Z` / `Ctrl+Shift+Z`
-- **Grid overlay** — 16 px snap grid, toggleable
-- **Export** — PNG, PDF, and share-as-HTML
+| Feature | Details |
+|---|---|
+| **Photo elements** | Add images by URL or from the photo library; drag, resize, rotate, and flip |
+| **Rich text boxes** | Editable text with font family, size, colour, bold/italic; double-click to type |
+| **Live map tiles** | Type any location name — the app geocodes it via Nominatim and embeds an OpenStreetMap static tile directly on the canvas |
+| **Travel stickers** | Five SVG stickers (passport stamp, compass rose, luggage tag, location pin, vintage stamp) placed as resizable, rotatable canvas objects |
+| **Properties panel** | Live position, size, rotation, opacity, and type-specific controls for the selected object |
+| **Undo / Redo** | 50-step Fabric.js JSON snapshot stack; `Ctrl+Z` / `Ctrl+Shift+Z` or toolbar buttons |
+| **Grid overlay** | 16 px snap grid, toggleable via the Grid button |
+| **Export PNG** | Hides the grid and renders the canvas at 2× resolution |
+| **Export PDF** | Outputs an A4 landscape PDF ready for print |
+| **Auto-save** | Every canvas change is persisted to MongoDB via the Next.js API |
+
+---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Framework | Next.js (App Router, TypeScript) |
-| Canvas (primary) | Fabric.js |
+|---|---|
+| Framework | Next.js 16 (App Router, TypeScript) |
+| Canvas (primary) | Fabric.js 7 |
 | Canvas (secondary) | Konva.js + react-konva |
-| Styling | Tailwind CSS + custom CSS variables |
+| Styling | Tailwind CSS v4 + custom CSS design tokens |
 | UI Components | Headless shadcn-style components |
-| Backend | Express 5 + Mongoose (MongoDB) |
+| Database | MongoDB via Mongoose |
+| PDF export | jsPDF 4 |
+| Map tiles | OpenStreetMap static tiles (Nominatim geocoding, no API key required) |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- npm 9+
+- A running MongoDB instance (local or Atlas)
 
-### Frontend
+### Setup
 
 ```bash
+cp .env.example .env.local
+# Edit .env.local and set MONGODB_URI
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Backend
-
-```bash
-cd backend
-npm install
-npm run dev   # starts nodemon on server.js
-```
+---
 
 ## Project Structure
 
 ```
 memorylane/
 ├── src/
-│   ├── app/               # Next.js App Router pages and layout
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── journals/          # CRUD routes (GET, POST, PUT, DELETE)
+│   │   │   └── map/               # Geocode + proxy OSM static tile images
+│   │   ├── globals.css            # Brand design tokens (CSS variables)
+│   │   ├── layout.tsx
+│   │   └── page.tsx               # Main editor page
 │   ├── components/
-│   │   ├── canvas/        # JournalCanvas (Fabric), KonvaJournalCanvas, PropertiesPanel
-│   │   └── ui/            # Button, Card, Badge, Input, Slider, Tabs
+│   │   ├── canvas/
+│   │   │   ├── JournalCanvas.tsx      # Fabric.js canvas (primary)
+│   │   │   ├── KonvaJournalCanvas.tsx # Konva.js canvas (secondary)
+│   │   │   └── PropertiesPanel.tsx    # Object properties sidebar
+│   │   └── ui/                        # Button, Card, Badge, Input, Slider, Tabs
 │   ├── hooks/
-│   │   └── useCanvasHistory.ts   # Undo/redo state machine
-│   ├── lib/
-│   │   ├── canvas/types.ts       # Shared canvas data model
-│   │   ├── export/               # PNG / PDF / HTML export helpers
-│   │   ├── maps/                 # Map tile utilities
-│   │   └── stickers/             # Sticker catalogue
-│   └── styles/
-│       └── globals.css           # Brand design tokens
-└── backend/               # Express + MongoDB API
+│   │   └── useCanvasHistory.ts        # Undo/redo state machine
+│   └── lib/
+│       ├── canvas/types.ts            # Shared data model
+│       ├── db.ts                      # Mongoose connection
+│       ├── models/Journal.ts          # Journal Mongoose model
+│       ├── stickers.ts                # SVG sticker catalogue
+│       └── utils.ts
+└── public/
 ```
+
+---
 
 ## Canvas Data Model
 
-All canvas state is serialised as `CanvasData`:
+All canvas state serialises as `CanvasData`:
 
 ```ts
 interface CanvasData {
@@ -85,7 +102,29 @@ interface CanvasData {
 }
 ```
 
-Each object carries common transform fields (`x`, `y`, `width`, `height`, `rotation`, `scaleX`, `scaleY`, `opacity`) plus type-specific properties.
+Every object carries shared transform fields (`x`, `y`, `width`, `height`, `rotation`, `scaleX`, `scaleY`, `opacity`) plus type-specific properties.
+
+---
+
+## Map Integration
+
+The `/api/map?location=Paris` route:
+1. Geocodes the location name using the [Nominatim API](https://nominatim.openstreetmap.org/) (free, no key required).
+2. Proxies the resulting [OpenStreetMap static map](https://staticmap.openstreetmap.de/) image back to the browser to avoid CORS restrictions.
+
+---
+
+## Similar Work — Legacy Modernisation Reference
+
+This project mirrors the surgical modernisation pattern used on legacy business tools:
+
+- **API integration** — external data (map tiles) pulled into the existing product via a thin proxy layer, preserving the core engine while adding connectivity.
+- **UI/UX facelift** — the underlying canvas logic is unchanged; only the shell (layout, sidebar, toolbar) was reskinned to a modern SaaS aesthetic.
+- **Export pipeline** — a PDF/PNG generation layer bolted onto the existing data model using jsPDF, without touching the rendering logic.
+- **Bug fixes** — broken JSX layout, unrendered text objects, and disconnected buttons were resolved without restructuring the codebase.
+- **Targeted additions** — map embed and sticker library added as thin, isolated modules that call into the existing canvas API.
+
+---
 
 ## License
 

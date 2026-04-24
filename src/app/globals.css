@@ -71,6 +71,12 @@
 
   /* Typography */
   --font-serif: 'Merriweather', Georgia, Cambria, 'Times New Roman', serif;
+
+  /* InterSolutions Suite Palette */
+  --suite-bg: #0a1120;
+  --suite-surface: #0d1526;
+  --suite-surface-2: #162038;
+  --suite-accent: #e91e8c;
 }
 
 @theme inline {
