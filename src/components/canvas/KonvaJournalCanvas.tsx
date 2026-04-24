@@ -47,7 +47,8 @@ export function KonvaJournalCanvas({
         scaleX: child.scaleX(),
         scaleY: child.scaleY(),
         opacity: child.opacity(),
-        visible: child.visible()
+        visible: child.visible(),
+        src: ''
       }));
 
     const canvasData: CanvasData = {
