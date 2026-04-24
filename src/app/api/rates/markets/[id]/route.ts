@@ -12,7 +12,7 @@ export async function GET(
   const configs = getMarketConfigs(id);
   const roles = configs.map(c => {
     const role = ROLES.find(r => r.id === c.roleId);
-    return { role, burdenRate: c.burdenRate, avgPay: c.avgPay };
+    return { role, overheadRate: c.overheadRate, avgRate: c.avgRate };
   });
 
   return Response.json({ market, roles });
