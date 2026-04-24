@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JournalCanvas } from '@/components/canvas/JournalCanvas';
 import { KonvaJournalCanvas } from '@/components/canvas/KonvaJournalCanvas';
 import { Button } from '@/components/ui/button';
@@ -123,10 +123,51 @@ export default function Home() {
   const [canvasData, setCanvasData] = useState<CanvasData | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [selectedObject, setSelectedObject] = useState<CanvasObject | null>(null);
+  const [journalId, setJournalId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
-  const handleSave = (data: CanvasData) => {
-    console.log('Canvas data saved:', data);
+  useEffect(() => {
+    fetch('/api/journals')
+      .then((r) => r.json())
+      .then((journals) => {
+        if (journals.length > 0) {
+          setJournalId(journals[0]._id);
+          setCanvasData(journals[0].canvasData);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async (data: CanvasData) => {
     setCanvasData(data);
+    setSaving(true);
+    setSaveStatus('idle');
+    try {
+      if (journalId) {
+        await fetch(`/api/journals/${journalId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canvasData: data }),
+        });
+      } else {
+        const res = await fetch('/api/journals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'My Journal',
+            canvasData: data,
+          }),
+        });
+        const created = await res.json();
+        setJournalId(created._id);
+      }
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addSampleImage = (index: number) => {
@@ -303,13 +344,13 @@ export default function Home() {
                 <div className="relative">
                   {activeCanvas === 'fabric' ? (
                     <JournalCanvas
-                      initialData={SAMPLE_JOURNAL_DATA}
+                      initialData={canvasData ?? SAMPLE_JOURNAL_DATA}
                       onSave={handleSave}
                       onSelectionChange={(objects) => setSelectedObject(objects[0] || null)}
                     />
                   ) : (
                     <KonvaJournalCanvas
-                      initialData={SAMPLE_JOURNAL_DATA}
+                      initialData={canvasData ?? SAMPLE_JOURNAL_DATA}
                       onSave={handleSave}
                       onSelectionChange={(objects) => setSelectedObject(objects[0] || null)}
                     />
@@ -376,6 +417,9 @@ export default function Home() {
                   <span id="object-count">5 objects</span>
                 </div>
                 <div className="flex items-center space-x-2">
+                  {saving && <span className="text-xs text-neutral-400">Saving…</span>}
+                  {!saving && saveStatus === 'saved' && <span className="text-xs text-green-600">Saved</span>}
+                  {!saving && saveStatus === 'error' && <span className="text-xs text-red-500">Save failed</span>}
                   <span className="text-xs text-neutral-500">v1.0</span>
                 </div>
               </div>
